@@ -326,13 +326,18 @@ static inline int setlog__lvl(log_lvl level) {
 #define LOG_CLOSE() (logger__close())
 #define SET_LOG_LVL(lvl) (setlog__lvl(lvl))
 
+#define ERROR_LOG(msg, ...) (LOG(ERROR_L, (msg), __VA_ARGS__))
+#define WARN_LOG(msg, ...) (LOG(WARNING_L, (msg), __VA_ARGS__))
+#define INFO_LOG(msg, ...) (LOG(INFO_L, (msg), __VA_ARGS__))
+#define DEBUG_LOG(msg, ...) (LOG(DEBUG_L, (msg), __VA_ARGS__))
+
 void logger_test() {
-    LOG(ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
-    LOG(WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
-    LOG(INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
-    LOG(DEBUG_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    ERROR_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
+    WARN_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
+    INFO_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
+    DEBUG_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
     SET_LOG_LVL(WARNING_L);
-    LOG(INFO_L, "Just an info message that will never be loged.");
+    INFO_LOG("Just an info message that will never be loged.");
 }
 
 int main(int argc, char **argv) {
