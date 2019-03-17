@@ -23,13 +23,13 @@ Logger TODO:
   + Change log level ability
   + Logging function
   + Enable writing into different streams
+  + Code refactoring
 
-  - Code refactoring
-  - Increase datetime precision (add format_str abilities)
   - Separate src into different files
   - Enable port to linux (and Mac OS in future(but who cares?))
   - Create different process and/or thread for logger
-  - Enable configure loggers parameters
+  - Add custom level creation and categories
+  - Enable config files
 
 */
 
@@ -105,7 +105,6 @@ typedef struct BufHdr {
 #define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL) : 0)
 #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
 #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
-#define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)
 
 void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {
@@ -127,264 +126,216 @@ void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {
 
 // Dumb logger
 
-typedef enum {
-  ERROR_L,
-  WARNING_L,
-  INFO_L,
-  DEBUG_L
-} _log_level;
+#define MAX_LOG_LINE_LEN 1024
 
-char *log_leveltostr(_log_level level) {
-  switch(level) {
+typedef enum {
+    ERROR_L,
+    WARNING_L,
+    INFO_L,
+    DEBUG_L
+} log_lvl;
+
+char *log_level_to_str(log_lvl level) {
+    switch(level) {
     case ERROR_L:
-      return "ERROR";
+        return "[ERROR]";
     case WARNING_L:
-      return "WARN";
+        return " [WARN]";
     case INFO_L:
-      return "INFO";
+        return " [INFO]";
     case DEBUG_L:
-      return "DEBUG";
+        return "[DEBUG]";
     default:
-      fatal("Unknown log level identifier: %d", level);
-      break;
-  }
+        fatal("Unknown log level identifier: %d", level);
+        break;
+    }
 }
 
-typedef int (*_log_init)();
-typedef int (*_log_close)();
-typedef void (*_log_func)(const char *, _log_level);
+typedef int (*log_init)();
+typedef int (*log_close)();
+typedef void (*log_print)(log_lvl, const char *, va_list args);
 
 typedef enum {
-  CONSOLE_LGG,
-  FILE_LGG
-} _atomic_lgg_type;
+    CONSOLE_LGG,
+    FILE_LGG
+} atom_lgg_type;
 
-typedef struct {
-  _atomic_lgg_type type;
-  _log_init init;
-  _log_func func;
-  _log_close close;
-} atomic_lgg;
+typedef struct atomic_lgg {
+    atom_lgg_type type;
+    log_init init;
+    log_print print;
+    log_close close;
+} atom_lgg;
 
 // Message preprocessing
 
 // Date and time functions
 // TODO: Make more appropriate datetime format
 char *get_datetime_str() {
-  struct timeb now;
-  char *timeline, *endstr;
+    struct timeb now;
+    char *timeline, *endstr;
 
-  // Get time in predefined format
-  _ftime(&now);
-  timeline = ctime(&(now.time));
+    // Get time in predefined format
+    _ftime(&now);
+    timeline = ctime(&(now.time));
 
-  // Remove '\n' on line's end
-  endstr = timeline;
-  while (*endstr != '\0') endstr++;
-  *(endstr - 1) = '\0';
+    // Remove '\n' on line's end
+    endstr = timeline;
+    while (*endstr != '\0') endstr++;
+    *(endstr - 1) = '\0';
 
-  return timeline;
-}
-
-// TODO: Use vprintf and this implementation take out for another project
-char *format_str(const char *format, ...) {
-  va_list ap;
-  size_t str_len;
-  const char *sp, *last_sp;
-  char *temp;
-  // TODO: find a better way to allocate memory for string
-  char *result_str = (char *) xmalloc(strlen(format)+256);
-  char *result_str_ptr = result_str;
-  
-  va_start(ap, format);
-  for (sp = format, last_sp = format; *sp != '\0'; sp++) {
-    if (*sp == '%') {
-      // Copy everything before current %
-      str_len = sp - last_sp;
-      memcpy(result_str_ptr, last_sp, str_len);
-      result_str_ptr += str_len;
-      
-      switch(*(sp + 1)) {
-      case 's':
-	temp = va_arg(ap, char *);
-	str_len = strlen(temp);
-	memcpy(result_str_ptr, temp, str_len);
-	result_str_ptr += str_len;
-	break;
-      case 'd':
-	str_len = sp - last_sp;
-	_itoa(va_arg(ap, int), result_str_ptr, 10);
-	while (*result_str_ptr != '\0')
-	  result_str_ptr++;
-	break;
-      case '%':
-	*result_str_ptr = '%';
-	result_str_ptr++;
-	break;
-      default:
-	    // TODO: Output warning about unspecified token
-	    break;
-      }
-
-      last_sp = sp + 2;
-      sp = last_sp - 1;
-    }
-  }
-
-  // Copy everything after last %
-  str_len = strlen(last_sp);
-  memcpy(result_str_ptr, last_sp, str_len);
-  result_str_ptr += str_len;
-  *result_str_ptr = '\0';
-  
-  va_end(ap);
-  return result_str;
-}
-
-void format_str_test() {
-  printf(format_str("LOL %s - This is string\n", "some string"));
-  printf(format_str("%s\n", "string consist of chars"));
-  printf(format_str("%s comon!\n", "Oh,"));
-  printf(format_str("Yes, I %s\n", "will."));
-  printf(format_str("this is number: %d\n", 123456));
-  printf(format_str("%d - number\n", 654321));
-  printf(format_str("%d\n", 111111));
-  printf(format_str("NUM: %d, STR: %s\n", 42, "42"));
-  printf(format_str("%s%s\n", "one", "two"));
-  printf(format_str("%d%d\n", 42, 24));
+    return timeline;
 }
 
 
 // Atomic loggers functions
-void _console_lgg(const char *msg, _log_level level) {
-  fputs(format_str("%s [%s]: %s\n", get_datetime_str(), log_leveltostr(level), msg), stdout);
+void common_lgg_print(FILE *ostream, log_lvl level, const char *fmt, va_list argptr) {
+    char *msg[MAX_LOG_LINE_LEN];
+    static const char *warn = "... !!! WARNING !!! Message was truncated!";
+    int required_len;
+
+    // Assemble user formated string
+    required_len = vsnprintf(msg, MAX_LOG_LINE_LEN, fmt, argptr);
+
+    // And then print it in logger wrapped format
+    fprintf(ostream, "%s %s: %s%s\n", get_datetime_str(), log_level_to_str(level), msg, required_len >= MAX_LOG_LINE_LEN ? warn : "");
+}
+
+static inline void console_lgg_print(log_lvl level, const char *fmt, va_list argptr) {
+    common_lgg_print(stdout, level, fmt, argptr);
 }
 
 // TEMP: Assign path on logger init
 const char *log_path = "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\"; // DIRTY
 const char *log_name = "testlog";
 
-static FILE *_file_lgg_output = NULL;
-int _file_lgg_init() {
-   int log_n = 0;
-   char *buf = format_str("%s%s.log", log_path, log_name);
+static FILE *file_lgg_output = NULL;
+int file_lgg_init() {
+    int log_n = 0;
+    char *buf = (char *)malloc(MAX_PATH * sizeof(char));
+    
+    // Set initial log filename
+    sprintf(buf, "%s%s.log", log_path, log_name);
 
-   while (file_exists(buf)) {
-     free(buf);
-     buf = format_str("%s%s.%d.log", log_path, log_name, log_n);
-     log_n++;
-   }
+    while (file_exists(buf)) {
+        // Change filename if previous already exists
+        sprintf(buf, "%s%s.%d.log", log_path, log_name, log_n);
+        log_n++;
+    }
   
-   _file_lgg_output = fopen(buf, "w");
-   if (_file_lgg_output == NULL) {
-     return 1;
-   } else {
-     return 0;
-   }
+    file_lgg_output = fopen(buf, "w");
+    if (file_lgg_output == NULL) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
-void _file_lgg(const char *msg, _log_level level) {
-  fputs(format_str("%s [%s]: %s\n", get_datetime_str(), log_leveltostr(level), msg), _file_lgg_output);
+static inline void file_lgg_print(log_lvl level, const char *fmt, va_list argptr) {
+    common_lgg_print(file_lgg_output, level, fmt, argptr);
 }
 
-int _file_lgg_close() {
-  return fclose(_file_lgg_output);
+int file_lgg_close() {
+    return fclose(file_lgg_output);
 }
 
 void atomic_loggers_test() {
-  _console_lgg("Just a test message. Error! Praise youselves!", ERROR_L);
-  _console_lgg("Second test message. Just warn you", WARNING_L);
-  _console_lgg("One more test message. This is info", INFO_L);
-  _console_lgg("Yes. Test message. The last one. This time debug", DEBUG_L);
+    console_lgg_print(ERROR_L, "Just a test message. Error! Praise youselves!", NULL);
+    console_lgg_print(WARNING_L, "Second test message. Just warn you", NULL);
+    console_lgg_print(INFO_L, "One more test message. This is info", NULL);
+    console_lgg_print(DEBUG_L, "Yes. Test message. The last one. This time debug", NULL);
 
-  _file_lgg_init();
-  _file_lgg("Just a test message. Error! Praise youselves!", ERROR_L);
-  _file_lgg("Second test message. Just warn you", WARNING_L);
-  _file_lgg("One more test message. This is info", INFO_L);
-  _file_lgg("Yes. Test message. The last one. This time debug", DEBUG_L);
-  _file_lgg_close();
+    file_lgg_init();
+    file_lgg_print(ERROR_L, "Just a test message. Error! Praise youselves!", NULL);
+    file_lgg_print(WARNING_L, "Second test message. Just warn you", NULL);
+    file_lgg_print(INFO_L, "One more test message. This is info", NULL);
+    file_lgg_print(DEBUG_L, "Yes. Test message. The last one, I promice. This time debug", NULL);
+    file_lgg_print(DEBUG_L, "Very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long message.", NULL);
+    file_lgg_close();
 }
 
 // Logger itself
-static atomic_lgg *lgg_buf = NULL;
-static _log_level glob_log_level = DEBUG_L;
+static atom_lgg *lgg_buf = NULL;
+static log_lvl glob_log_level = DEBUG_L;
 
-void _add_atomic_lgg(_atomic_lgg_type type, _log_init init, _log_func func, _log_close close) {
-  assert(func != NULL);
-  buf_push(lgg_buf, (atomic_lgg){ type, init, func, close });
+void add__atomic__lgg(atom_lgg_type type, log_init init_func, log_print print_func, log_close close_func) {
+    assert(print_func != NULL);
+    buf_push(lgg_buf, (atom_lgg){ type, init_func, print_func, close_func });
 }
 
 // TODO: Init logger in another process and/or thread
-bool _logger_initialized = false;
-int _logger_init() {
-  if (!_logger_initialized) {
+static bool logger_initialized = false;
+int logger__init() {
+    if (!logger_initialized) {
+        int i;
+  
+        add__atomic__lgg(CONSOLE_LGG, NULL, console_lgg_print, NULL);
+        add__atomic__lgg(FILE_LGG, file_lgg_init, file_lgg_print, file_lgg_close);
+
+        assert(lgg_buf != NULL);
+        for (i = 0; i < buf_len(lgg_buf); i++) {
+            if (lgg_buf[i].init != NULL && lgg_buf[i].init())
+                return 1;
+        }
+
+        logger_initialized = true;
+    }
+
+    return 0;
+}
+
+static inline void print__log(log_lvl level, const char *fmt, ...) {
+    va_list args;
     int i;
   
-    _add_atomic_lgg(CONSOLE_LGG, NULL, _console_lgg, NULL);
-    _add_atomic_lgg(FILE_LGG, _file_lgg_init, _file_lgg, _file_lgg_close);
+    if (!logger_initialized && logger__init()) {
+        fatal("Logger initialization error");
+    }
 
     assert(lgg_buf != NULL);
+    va_start(args, fmt);
     for (i = 0; i < buf_len(lgg_buf); i++) {
-      if (lgg_buf[i].init != NULL && lgg_buf[i].init())
-	return 1;
+        if (lgg_buf[i].print != NULL && level <= glob_log_level)
+            lgg_buf[i].print(level, fmt, args);
     }
-
-    _logger_initialized = true;
-  }
-
-  return 0;
+    va_end(args);
 }
 
-void _print_log(const char *msg, _log_level level) {
-  int i;
-  
-  if (!_logger_initialized && _logger_init()) {
-    fatal("Logger initialization error");
-  }
-
-  assert(lgg_buf != NULL);
-  for (i = 0; i < buf_len(lgg_buf); i++) {
-    if (lgg_buf[i].func != NULL && level <= glob_log_level)
-      lgg_buf[i].func(msg, level);
-  }
-}
-
-int _logger_close() {
-  if (lgg_buf != NULL) {
-    int i;
-    int result = 0;
+int logger__close() {
+    if (lgg_buf != NULL) {
+        int i;
+        int result = 0;
     
-    for (i = 0; i < buf_len(lgg_buf); i++) {
-      if (lgg_buf[i].close != NULL)
-	lgg_buf[i].close();
+        for (i = 0; i < buf_len(lgg_buf); i++) {
+            if (lgg_buf[i].close != NULL)
+                lgg_buf[i].close();
+        }
     }
-  }
 }
 
-int _set_log_level(_log_level level) {
-  if (level >= ERROR_L && level <= DEBUG_L)
-    glob_log_level = level;
-  else
-    fatal("Unknown log level identifier: %d", level);
+static inline int setlog__lvl(log_lvl level) {
+    if (level >= ERROR_L && level <= DEBUG_L)
+        glob_log_level = level;
+    else
+        fatal("Unknown log level identifier: %d", level);
 }
 
 // External interface
-#define LOG_INIT() (_logger_init())
-#define LOG(lvl, msg) (_print_log((msg), (lvl)))
-#define LOG_CLOSE() (_logger_close())
-#define SET_LOG_LVL(lvl) (_set_log_level(lvl))
+#define LOG_INIT() (logger__init())
+#define LOG(lvl, msg, ...) (print__log((lvl), (msg), __VA_ARGS__))
+#define LOG_CLOSE() (logger__close())
+#define SET_LOG_LVL(lvl) (setlog__lvl(lvl))
 
 void logger_test() {
-	LOG(ERROR_L, "Msg");
-	LOG(WARNING_L, "Msg");
-	LOG(INFO_L, "Msg");
-	LOG(DEBUG_L, "Msg");
-	SET_LOG_LVL(WARNING_L);
-	LOG(INFO_L, "Just an info message that will never be loged.");
+    LOG(ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(DEBUG_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    SET_LOG_LVL(WARNING_L);
+    LOG(INFO_L, "Just an info message that will never be loged.");
 }
 
 int main(int argc, char **argv) {
-  format_str_test();
-  atomic_loggers_test();
-  logger_test();
+    atomic_loggers_test();
+    logger_test();
 }
