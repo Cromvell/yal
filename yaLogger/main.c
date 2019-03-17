@@ -27,9 +27,9 @@ Logger TODO:
 
   - Separate src into different files
   - Enable port to linux (and Mac OS in future(but who cares?))
-  - Create different process and/or thread for logger
   - Add custom level creation and categories
   - Enable config files
+  - Option "Max file count"
 
 */
 
@@ -48,15 +48,6 @@ void fatal(const char *fmt, ...) {
     printf("\n");
     va_end(args);
     exit(1);
-}
-
-void *xcalloc(size_t num_elems, size_t elem_size) {
-    void *ptr = calloc(num_elems, elem_size);
-    if (!ptr) {
-        perror("xcalloc failed");
-        exit(1);
-    }
-    return ptr;
 }
 
 void *xrealloc(void *ptr, size_t num_bytes) {
@@ -151,8 +142,8 @@ char *log_level_to_str(log_lvl level) {
     }
 }
 
-typedef int (*log_init)();
-typedef int (*log_close)();
+typedef int (*log_init)(void);
+typedef int (*log_close)(void);
 typedef void (*log_print)(log_lvl, const char *, va_list);
 
 typedef enum {
