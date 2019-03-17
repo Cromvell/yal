@@ -153,7 +153,7 @@ char *log_level_to_str(log_lvl level) {
 
 typedef int (*log_init)();
 typedef int (*log_close)();
-typedef void (*log_print)(log_lvl, const char *, va_list args);
+typedef void (*log_print)(log_lvl, const char *, va_list);
 
 typedef enum {
     CONSOLE_LGG,
@@ -170,19 +170,19 @@ typedef struct atomic_lgg {
 // Message preprocessing
 
 // Date and time functions
-// TODO: Make more appropriate datetime format
 char *get_datetime_str() {
     struct timeb now;
-    char *timeline, *endstr;
+    char *timeline, year[5], *tmp;
 
     // Get time in predefined format
     _ftime(&now);
-    timeline = ctime(&(now.time));
-
-    // Remove '\n' on line's end
-    endstr = timeline;
-    while (*endstr != '\0') endstr++;
-    *(endstr - 1) = '\0';
+    tmp = ctime(&(now.time));
+    strncpy(year, tmp + 20, 4);
+    year[4] = '\0';
+    
+    timeline = (char *)malloc(strlen(tmp) * sizeof(char));
+    // Assemble final string and cut off unused parts
+    sprintf(timeline, "%s %.*s.%d", year, 18 - 3, tmp + 4, now.millitm);
 
     return timeline;
 }
