@@ -122,7 +122,10 @@ void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {
     return new_hdr->buf;
 }
 
+//////////////////////////////////////////////////////////////////
+//
 // Dumb logger
+//
 
 #define TEST__MODE 1
 
@@ -167,6 +170,7 @@ typedef struct atomic_lgg {
     log_close close;
 } atom_lgg;
 
+//////////////////////////////////////////////////////////////////
 // Message preprocessing
 
 // Date and time functions
@@ -180,56 +184,55 @@ char *get_datetime_str() {
     strncpy(year, tmp + 20, 4);
     year[4] = '\0';
     
-    timeline = (char *)malloc(strlen(tmp) * sizeof(char));
+    timeline = (char *)xmalloc(strlen(tmp) * sizeof(char));
+
     // Assemble final string and cut off unused parts
-    sprintf(timeline, "%s %.*s.%d", year, 18 - 3, tmp + 4, now.millitm);
+    sprintf(timeline, "%s %.*s.%3.d", year, 18 - 3, tmp + 4, now.millitm);
 
     return timeline;
 }
 
-
+//////////////////////////////////////////////////////////////////
 // Atomic loggers functions
 void common_lgg_print(FILE *ostream, log_lvl level, const char *fmt, va_list argptr) {
-    char *msg[MAX_LOG_LINE_LEN];
+    char msg[MAX_LOG_LINE_LEN];
     static const char *warn = "... !!! WARNING !!! Message was truncated!";
     int required_len;
 
     // Assemble user formated string
     required_len = vsnprintf(msg, MAX_LOG_LINE_LEN, fmt, argptr);
 
+    char *timeline = get_datetime_str();
+    char *loglvl = log_level_to_str(level);
     // And then print it in logger wrapped format
-    fprintf(ostream, "%s %s: %s%s\n", get_datetime_str(), log_level_to_str(level), msg, required_len >= MAX_LOG_LINE_LEN ? warn : "");
+    fprintf(ostream, "%s %s: %s%s\n", timeline, loglvl, msg, required_len >= MAX_LOG_LINE_LEN ? warn : "");
 }
 
 static inline void console_lgg_print(log_lvl level, const char *fmt, va_list argptr) {
     common_lgg_print(stdout, level, fmt, argptr);
 }
 
-// TEMP: Assign path on logger init
-//const char *log_path = "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\"; // DIRTY
-//const char *log_name = "testlog";
-
 static FILE *file_lgg_output = NULL;
-int file_lgg_init(const char *cwd, const char *log_name) {
+int file_lgg_init(const char *log_path, const char *log_name) {
     int log_n = 0;
     char *buf;
 
     // Check if path exists
-    if (!dir_exists(cwd)) {
+    if (!dir_exists(log_path)) {
         return 1;
     }
 
-    if (cwd[strlen(cwd) - 1] != '\\') {
-        strcat(cwd, "\\");
+    if (log_path[strlen(log_path) - 1] != '\\') {
+        strcat(log_path, "\\");
     }
     
     // Set initial log filename
-    buf = (char *)malloc(MAX_PATH * sizeof(char));
-    sprintf(buf, "%s%s.log", cwd, log_name);
+    buf = (char *)xmalloc(MAX_PATH * sizeof(char));
+    sprintf(buf, "%s%s.log", log_path, log_name);
 
     while (file_exists(buf)) {
         // Change filename if previous already exists
-        sprintf(buf, "%s%s.%d.log", cwd, log_name, log_n);
+        sprintf(buf, "%s%s.%d.log", log_path, log_name, log_n);
         log_n++;
     }
   
@@ -266,97 +269,147 @@ void atomic_loggers_test() {
     file_lgg_close();
 }
 
+//////////////////////////////////////////////////////////////////
 // Logger itself
-static atom_lgg *lgg_buf = NULL;
-static log_lvl glob_log_level = DEBUG_L;
+typedef struct {
+    char *log_path;
+    char *log_name;
+    log_lvl verbosity;
+} lgg_conf;
 
-void add__atomic__lgg(atom_lgg_type type, log_init init_func, log_print print_func, log_close close_func) {
+typedef struct {
+    char *name;
+    log_lvl verbosity;
+} lgg_module;
+
+typedef struct {
+    lgg_conf *conf;
+    atom_lgg *atom_buf;
+    lgg_module *module_buf;
+} logger;
+
+
+void add__atomic__lgg(logger *lgg, atom_lgg_type type, log_init init_func, log_print print_func, log_close close_func) {
     assert(print_func != NULL);
-    buf_push(lgg_buf, (atom_lgg){ type, init_func, print_func, close_func });
+    buf_push(lgg->atom_buf, (atom_lgg){ type, init_func, print_func, close_func });
 }
 
-static bool logger_initialized = false;
-int logger__init() {
-    if (!logger_initialized) {
-        int i;
-  
-        add__atomic__lgg(CONSOLE_LGG, NULL, console_lgg_print, NULL);
-        add__atomic__lgg(FILE_LGG, file_lgg_init, file_lgg_print, file_lgg_close);
+logger *logger__init(lgg_conf *params) {
+    int i;
 
-        assert(lgg_buf != NULL);
-        for (i = 0; i < buf_len(lgg_buf); i++) {
-            if (lgg_buf[i].init != NULL &&
-                lgg_buf[i].type == FILE_LGG &&
-                lgg_buf[i].init(NULL, NULL))
-            {
-                return 1;
-            }
+    logger *lgg = (logger *)malloc(sizeof(logger));
+    if (lgg == NULL) {
+        return NULL;
+    }
+    if (params != NULL)
+        lgg->conf = params;
+    else {
+        lgg->conf = (lgg_conf *)malloc(sizeof(lgg_conf));
+        if (lgg->conf == NULL) {
+            free(lgg);
+            return NULL;
         }
 
-        logger_initialized = true;
+        // Default logger settings
+        lgg->conf->log_name = "yaLogger"; // TODO: Make name more original
+        lgg->conf->log_path = _getcwd(NULL, 0);
+        lgg->conf->verbosity = DEBUG_L;
+    }
+    lgg->atom_buf = NULL;
+    lgg->module_buf = NULL;
+
+    // Add atomic loggers
+    add__atomic__lgg(lgg, CONSOLE_LGG, NULL, console_lgg_print, NULL);
+    add__atomic__lgg(lgg, FILE_LGG, file_lgg_init, file_lgg_print, file_lgg_close);
+
+    // Init all added atomic loggers (currently only file logger)
+    assert(lgg->atom_buf != NULL);
+    for (i = 0; i < buf_len(lgg->atom_buf); i++) {
+        if (lgg->atom_buf[i].init != NULL &&
+            lgg->atom_buf[i].type == FILE_LGG)
+        {
+            if (lgg->atom_buf[i].init(lgg->conf->log_path, lgg->conf->log_name)) {
+                buf_free(lgg->atom_buf);
+                buf_free(lgg->module_buf);
+                free(lgg);
+                return NULL;
+            }
+        }
     }
 
-    return 0;
+    return lgg;
 }
 
-static inline void print__log(log_lvl level, const char *fmt, ...) {
+void print__log(logger *lgg, log_lvl level, const char *fmt, ...) {
     va_list args;
     int i;
-  
-    if (!logger_initialized && logger__init()) {
-        fatal("Logger initialization error");
+
+    if (lgg == NULL && (lgg = logger__init(NULL)) == NULL) {
+        fatal("Logger initialization failed");
     }
 
-    assert(lgg_buf != NULL);
+    assert(lgg->atom_buf != NULL);
     va_start(args, fmt);
-    for (i = 0; i < buf_len(lgg_buf); i++) {
-        if (lgg_buf[i].print != NULL && level <= glob_log_level)
-            lgg_buf[i].print(level, fmt, args);
+    for (i = 0; i < buf_len(lgg->atom_buf); i++) {
+        if (lgg->atom_buf[i].print != NULL && level <= lgg->conf->verbosity)
+            lgg->atom_buf[i].print(level, fmt, args);
     }
     va_end(args);
 }
 
-int logger__close() {
-    if (lgg_buf != NULL) {
-        int i;
-        int result = 0;
-    
-        for (i = 0; i < buf_len(lgg_buf); i++) {
-            if (lgg_buf[i].close != NULL)
-                lgg_buf[i].close();
+int logger__close(logger *lgg) {
+    if (lgg != NULL) {
+        if (lgg->atom_buf != NULL) {
+            int i;
+            int result = 0;
+
+            for (i = 0; i < buf_len(lgg->atom_buf); i++) {
+                if (lgg->atom_buf[i].close != NULL)
+                    lgg->atom_buf[i].close();
+            }
         }
+
+        buf_free(lgg->atom_buf);
+        buf_free(lgg->module_buf);
+        free(lgg);
+
+        lgg = NULL;
     }
 }
 
-static inline int set__log__lvl(log_lvl level) {
+static inline int set__log__lvl(logger *lgg, log_lvl level) {
     if (level >= ERROR_L && level <= DEBUG_L)
-        glob_log_level = level;
+        lgg->conf->verbosity = level;
     else
+        // TODO: Assign UNKNOWN_L when it will be added
         fatal("Unknown log level identifier: %d", level);
 }
 
+//////////////////////////////////////////////////////////////////
 // External interface
-#define LOG_INIT() (logger__init())
-#define LOG(lvl, msg, ...) (print__log((lvl), (msg), __VA_ARGS__))
-#define LOG_CLOSE() (logger__close())
-#define SET_LOG_LVL(lvl) (set__log__lvl(lvl))
+#define LOG_INIT(...) (logger__init(__VA_ARGS__))
+#define LOG(lgg, lvl, msg, ...) (print__log((lgg), (lvl), (msg), __VA_ARGS__))
+#define LOG_CLOSE(lgg) (logger__close(lgg))
+#define SET_LOG_LVL(lgg, lvl) (set__log__lvl(lgg, lvl))
 
-#define ERROR_LOG(msg, ...) (LOG(ERROR_L, (msg), __VA_ARGS__))
-#define WARN_LOG(msg, ...) (LOG(WARNING_L, (msg), __VA_ARGS__))
-#define INFO_LOG(msg, ...) (LOG(INFO_L, (msg), __VA_ARGS__))
-#define DEBUG_LOG(msg, ...) (LOG(DEBUG_L, (msg), __VA_ARGS__))
+// Logger parameters
+const char *log_path = "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\";
+const char *log_name = "testlog";
 
 void logger_test() {
-    ERROR_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
-    WARN_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
-    INFO_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
-    DEBUG_LOG("Message: %s, %d, %f", "string", 42, 2.718281828);
-    SET_LOG_LVL(WARNING_L);
-    INFO_LOG("Just an info message that will never be loged.");
+    logger *lgg = LOG_INIT(&(lgg_conf){ log_path, log_name, DEBUG_L });
+    LOG(lgg, ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, DEBUG_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    SET_LOG_LVL(lgg, WARNING_L);
+    LOG(lgg, INFO_L, "Just an info message that will never be loged.");
+    
+    LOG_CLOSE(lgg);
 }
 
 int main(int argc, char **argv) {
     atomic_loggers_test();
-    //logger_test();
+    logger_test();
     //getchar();
 }
