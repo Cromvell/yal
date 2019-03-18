@@ -1,6 +1,7 @@
 // Windows specific headers
 #include <windows.h>
 #include <tchar.h>
+#include <direct.h>
 
 // Portable headers
 #include <stdio.h>
@@ -68,14 +69,20 @@ void *xmalloc(size_t num_bytes) {
     return ptr;
 }
 
-int file_exists(TCHAR * file) {
-  WIN32_FIND_DATA find_file_data;
-  HANDLE handle = FindFirstFile(file, &find_file_data);
-  int found = handle != INVALID_HANDLE_VALUE;
-  if(found) {
-    FindClose(handle);
-  }
-  return found;
+BOOL file_exists(TCHAR * file) {
+    WIN32_FIND_DATA find_file_data;
+    HANDLE handle = FindFirstFile(file, &find_file_data);
+    int found = handle != INVALID_HANDLE_VALUE;
+    if(found) {
+        FindClose(handle);
+    }
+    return found;
+}
+
+BOOL dir_exists(TCHAR * sz_path) {
+    DWORD dw_attrib = GetFileAttributes(sz_path);
+    return (dw_attrib != INVALID_FILE_ATTRIBUTES &&
+           (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
 // Stretchy buffer
@@ -117,6 +124,8 @@ void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {
 
 // Dumb logger
 
+#define TEST__MODE 1
+
 #define MAX_LOG_LINE_LEN 1024
 
 typedef enum {
@@ -142,7 +151,7 @@ char *log_level_to_str(log_lvl level) {
     }
 }
 
-typedef int (*log_init)(void);
+typedef int (*log_init)();
 typedef int (*log_close)(void);
 typedef void (*log_print)(log_lvl, const char *, va_list);
 
@@ -197,20 +206,30 @@ static inline void console_lgg_print(log_lvl level, const char *fmt, va_list arg
 }
 
 // TEMP: Assign path on logger init
-const char *log_path = "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\"; // DIRTY
-const char *log_name = "testlog";
+//const char *log_path = "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\"; // DIRTY
+//const char *log_name = "testlog";
 
 static FILE *file_lgg_output = NULL;
-int file_lgg_init() {
+int file_lgg_init(const char *cwd, const char *log_name) {
     int log_n = 0;
-    char *buf = (char *)malloc(MAX_PATH * sizeof(char));
+    char *buf;
+
+    // Check if path exists
+    if (!dir_exists(cwd)) {
+        return 1;
+    }
+
+    if (cwd[strlen(cwd) - 1] != '\\') {
+        strcat(cwd, "\\");
+    }
     
     // Set initial log filename
-    sprintf(buf, "%s%s.log", log_path, log_name);
+    buf = (char *)malloc(MAX_PATH * sizeof(char));
+    sprintf(buf, "%s%s.log", cwd, log_name);
 
     while (file_exists(buf)) {
         // Change filename if previous already exists
-        sprintf(buf, "%s%s.%d.log", log_path, log_name, log_n);
+        sprintf(buf, "%s%s.%d.log", cwd, log_name, log_n);
         log_n++;
     }
   
@@ -236,7 +255,9 @@ void atomic_loggers_test() {
     console_lgg_print(INFO_L, "One more test message. This is info", NULL);
     console_lgg_print(DEBUG_L, "Yes. Test message. The last one. This time debug", NULL);
 
-    file_lgg_init();
+    if (file_lgg_init(TEST__MODE ? "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\" : _getcwd(NULL, 0), "testlog")) {
+        fatal("Atomic file logger init error");
+    }
     file_lgg_print(ERROR_L, "Just a test message. Error! Praise youselves!", NULL);
     file_lgg_print(WARNING_L, "Second test message. Just warn you", NULL);
     file_lgg_print(INFO_L, "One more test message. This is info", NULL);
@@ -254,7 +275,6 @@ void add__atomic__lgg(atom_lgg_type type, log_init init_func, log_print print_fu
     buf_push(lgg_buf, (atom_lgg){ type, init_func, print_func, close_func });
 }
 
-// TODO: Init logger in another process and/or thread
 static bool logger_initialized = false;
 int logger__init() {
     if (!logger_initialized) {
@@ -265,8 +285,12 @@ int logger__init() {
 
         assert(lgg_buf != NULL);
         for (i = 0; i < buf_len(lgg_buf); i++) {
-            if (lgg_buf[i].init != NULL && lgg_buf[i].init())
+            if (lgg_buf[i].init != NULL &&
+                lgg_buf[i].type == FILE_LGG &&
+                lgg_buf[i].init(NULL, NULL))
+            {
                 return 1;
+            }
         }
 
         logger_initialized = true;
@@ -304,7 +328,7 @@ int logger__close() {
     }
 }
 
-static inline int setlog__lvl(log_lvl level) {
+static inline int set__log__lvl(log_lvl level) {
     if (level >= ERROR_L && level <= DEBUG_L)
         glob_log_level = level;
     else
@@ -315,7 +339,7 @@ static inline int setlog__lvl(log_lvl level) {
 #define LOG_INIT() (logger__init())
 #define LOG(lvl, msg, ...) (print__log((lvl), (msg), __VA_ARGS__))
 #define LOG_CLOSE() (logger__close())
-#define SET_LOG_LVL(lvl) (setlog__lvl(lvl))
+#define SET_LOG_LVL(lvl) (set__log__lvl(lvl))
 
 #define ERROR_LOG(msg, ...) (LOG(ERROR_L, (msg), __VA_ARGS__))
 #define WARN_LOG(msg, ...) (LOG(WARNING_L, (msg), __VA_ARGS__))
@@ -333,5 +357,6 @@ void logger_test() {
 
 int main(int argc, char **argv) {
     atomic_loggers_test();
-    logger_test();
+    //logger_test();
+    //getchar();
 }
