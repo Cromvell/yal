@@ -41,7 +41,7 @@ BOOL file_exists(TCHAR * file) {
 BOOL dir_exists(TCHAR * sz_path) {
     DWORD dw_attrib = GetFileAttributes(sz_path);
     return (dw_attrib != INVALID_FILE_ATTRIBUTES &&
-        (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
+           (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
 void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {

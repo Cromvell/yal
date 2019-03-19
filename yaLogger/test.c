@@ -1,5 +1,7 @@
-#define CONSOLE_TEST(lvl, msg) (console_lgg_print((lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
-#define FILE_TEST(lvl, msg) (file_lgg_print((lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+#define CONSOLE_TEST(lvl, msg) (_ftime(&t), console_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+#define FILE_TEST(lvl, msg) (_ftime(&t), file_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+
+static struct timeb t;
 
 void atomic_loggers_test() {
     CONSOLE_TEST(ERROR_L, "Just a test message. Error! Praise youselves!");

@@ -17,33 +17,8 @@ char *log_level_to_str(log_lvl level) {
 }
 
 //////////////////////////////////////////////////////////////////
-// Message preprocessing
-
-// Date and time functions
-char *get_datetime_str() {
-    struct timeb now;
-    char *timeline, year[5], *tmp;
-
-    // Get time in predefined format
-    // NOTE: This is unholy shit! I capture time in string format oriented
-    // function. Besides this is NOT the time of actual log, it is also
-    // different for each atomic call in one log call. So, I must fix this
-    _ftime(&now); // TODO: Capture time in the right way
-    tmp = ctime(&(now.time));
-    strncpy(year, tmp + 20, 4);
-    year[4] = '\0';
-
-    timeline = (char *)xmalloc(strlen(tmp) * sizeof(char));
-
-    // Assemble final string and cut off unused parts
-    sprintf(timeline, "%s %.*s.%03.d", year, 18 - 3, tmp + 4, now.millitm);
-
-    return timeline;
-}
-
-//////////////////////////////////////////////////////////////////
 // Atomic loggers functions
-static inline void common_lgg_print(FILE *ostream, log_lvl level, uint16_t line, const char *file_path, const char *func, const char *fmt, va_list argptr) {
+static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file_path, const char *func, const char *fmt, va_list argptr) {
     char msg_buf[MAX_LOG_LINE_LEN];
     static const char *warn = "... !!! WARNING !!! Message was truncated!";
 
@@ -58,7 +33,7 @@ static inline void common_lgg_print(FILE *ostream, log_lvl level, uint16_t line,
     char *file = (char *)xmalloc((end - ps) * sizeof(char));
     strncpy(file, ps, (end - ps));
 
-    char *timeline = get_datetime_str();
+    char *timeline = get_datetime_str(time);
     char *loglvl = log_level_to_str(level);
     // And then print it in logger wrapped format
     // TODO: Make file, line and func optional
@@ -67,8 +42,8 @@ static inline void common_lgg_print(FILE *ostream, log_lvl level, uint16_t line,
 
 FILE *file_lgg_output = NULL; // Output file handle
 
-inline void console_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
-    common_lgg_print(stdout, level, line, file, func, fmt, argptr);
+inline void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+    common_lgg_print(stdout, time, level, line, file, func, fmt, argptr);
 }
 
 int file_lgg_init(const char *log_path, const char *log_name) {
@@ -104,8 +79,8 @@ int file_lgg_init(const char *log_path, const char *log_name) {
     }
 }
 
-inline void file_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
-    common_lgg_print(file_lgg_output, level, line, file, func, fmt, argptr);
+inline void file_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+    common_lgg_print(file_lgg_output, time, level, line, file, func, fmt, argptr);
 }
 
 int file_lgg_close() {

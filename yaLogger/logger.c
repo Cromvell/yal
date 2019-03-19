@@ -1,4 +1,6 @@
 #include "logger.h"
+#include "log_time.h"
+#include "atomic.h"
 
 void add__atomic__lgg(logger *lgg, atom_lgg_type type, log_init init_func, log_print print_func, log_close close_func) {
     assert(print_func != NULL);
@@ -28,6 +30,7 @@ logger *logger__init(lgg_conf *params) {
     }
     lgg->atom_buf = NULL;
     lgg->module_buf = NULL;
+    CAPTURE_TIME(lgg); // Initialize llg->timestamp
 
     // Add atomic loggers
     add__atomic__lgg(lgg, CONSOLE_LGG, NULL, console_lgg_print, NULL);
@@ -57,13 +60,16 @@ void print__log(logger *lgg, log_lvl level, uint16_t line, const char *file, con
 
     if (lgg == NULL && (lgg = logger__init(NULL)) == NULL) {
         fatal("Logger initialization failed");
+    } else {
+        // If logger initialized - capture time, if not - time will be captured during init
+        CAPTURE_TIME(lgg);
     }
 
     assert(lgg->atom_buf != NULL);
     va_start(args, fmt);
     for (i = 0; i < buf_len(lgg->atom_buf); i++) {
         if (lgg->atom_buf[i].print != NULL && level <= lgg->conf->verbosity)
-            lgg->atom_buf[i].print(level, line, file, func, fmt, args);
+            lgg->atom_buf[i].print(&(lgg->timestamp), level, line, file, func, fmt, args);
     }
     va_end(args);
 }

@@ -8,8 +8,8 @@ Logger TODO:
   + Code refactoring
   + Separate src into different files
   + Print file, line and function in log
+  + Increase timestamp pricesion. Capture it immediately on log call and then store
 
-  - Increase timestamp pricesion. Capture it imidiately on log call and then store
   - Enable port to linux (and Mac OS in future(but who cares?))
   - Add custom level creation and categories
   - Enable config files
@@ -30,5 +30,5 @@ Logger TODO:
 
 int main(int argc, char **argv) {
     test_main();
-    //getchar();
+    getchar();
 }

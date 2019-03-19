@@ -2,6 +2,7 @@
 #define ATOMIC_H
 
 #include "common.h"
+#include "log_time.h"
 
 #define TEST__MODE 1
 
@@ -17,7 +18,7 @@ typedef enum {
 
 typedef int(*log_init)();
 typedef int(*log_close)(void);
-typedef void(*log_print)(log_lvl, uint16_t, const char *, const char *, const char *, va_list);
+typedef void(*log_print)(lgg_time *, log_lvl, uint16_t, const char *, const char *, const char *, va_list);
 
 typedef enum {
     CONSOLE_LGG,
@@ -36,19 +37,16 @@ typedef struct atomic_lgg {
 
 char *log_level_to_str(log_lvl level);
 
-// Date and time functions
-char *get_datetime_str();
-
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions
 
-static inline void common_lgg_print(FILE *ostream, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
+static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
 
-extern inline void console_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
+extern inline void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
 
 extern FILE *file_lgg_output;
 extern int file_lgg_init(const char *log_path, const char *log_name);
-extern inline void file_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
+extern inline void file_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
 extern int file_lgg_close();
 
 #endif // ATOMIC_H
