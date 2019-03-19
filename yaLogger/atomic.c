@@ -3,13 +3,13 @@
 char *log_level_to_str(log_lvl level) {
     switch (level) {
     case ERROR_L:
-        return "[ERROR]";
+        return "ERROR";
     case WARNING_L:
-        return " [WARN]";
+        return "WARN";
     case INFO_L:
-        return " [INFO]";
+        return "INFO";
     case DEBUG_L:
-        return "[DEBUG]";
+        return "DEBUG";
     default:
         fatal("Unknown log level identifier: %d", level);
         break;
@@ -36,31 +36,39 @@ char *get_datetime_str() {
     timeline = (char *)xmalloc(strlen(tmp) * sizeof(char));
 
     // Assemble final string and cut off unused parts
-    sprintf(timeline, "%s %.*s.%3.d", year, 18 - 3, tmp + 4, now.millitm);
+    sprintf(timeline, "%s %.*s.%03.d", year, 18 - 3, tmp + 4, now.millitm);
 
     return timeline;
 }
 
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions
-static inline void common_lgg_print(FILE *ostream, log_lvl level, const char *fmt, va_list argptr) {
-    char msg[MAX_LOG_LINE_LEN];
+static inline void common_lgg_print(FILE *ostream, log_lvl level, uint16_t line, const char *file_path, const char *func, const char *fmt, va_list argptr) {
+    char msg_buf[MAX_LOG_LINE_LEN];
     static const char *warn = "... !!! WARNING !!! Message was truncated!";
-    int required_len;
 
     // Assemble user formated string
-    required_len = vsnprintf(msg, MAX_LOG_LINE_LEN, fmt, argptr);
+    int required_len = vsnprintf(msg_buf, MAX_LOG_LINE_LEN, fmt, argptr);
+
+    // Cut off filename from path
+    char *end = file_path + strlen(file_path);
+    char *ps = end;
+    while (*(ps-1) != '\\')
+        ps--;
+    char *file = (char *)xmalloc((end - ps) * sizeof(char));
+    strncpy(file, ps, (end - ps));
 
     char *timeline = get_datetime_str();
     char *loglvl = log_level_to_str(level);
     // And then print it in logger wrapped format
-    fprintf(ostream, "%s %s: %s%s\n", timeline, loglvl, msg, required_len >= MAX_LOG_LINE_LEN ? warn : "");
+    // TODO: Make file, line and func optional
+    fprintf(ostream, "%s [%-5s] {%s:%d} {%s()} %s%s\n", timeline, loglvl, file, line, func, msg_buf, required_len >= MAX_LOG_LINE_LEN ? warn : "");
 }
 
 FILE *file_lgg_output = NULL; // Output file handle
 
-inline void console_lgg_print(log_lvl level, const char *fmt, va_list argptr) {
-    common_lgg_print(stdout, level, fmt, argptr);
+inline void console_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+    common_lgg_print(stdout, level, line, file, func, fmt, argptr);
 }
 
 int file_lgg_init(const char *log_path, const char *log_name) {
@@ -96,8 +104,8 @@ int file_lgg_init(const char *log_path, const char *log_name) {
     }
 }
 
-inline void file_lgg_print(log_lvl level, const char *fmt, va_list argptr) {
-    common_lgg_print(file_lgg_output, level, fmt, argptr);
+inline void file_lgg_print(log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+    common_lgg_print(file_lgg_output, level, line, file, func, fmt, argptr);
 }
 
 int file_lgg_close() {

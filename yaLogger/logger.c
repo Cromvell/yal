@@ -51,7 +51,7 @@ logger *logger__init(lgg_conf *params) {
     return lgg;
 }
 
-void print__log(logger *lgg, log_lvl level, const char *fmt, ...) {
+void print__log(logger *lgg, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, ...) {
     va_list args;
     int i;
 
@@ -63,7 +63,7 @@ void print__log(logger *lgg, log_lvl level, const char *fmt, ...) {
     va_start(args, fmt);
     for (i = 0; i < buf_len(lgg->atom_buf); i++) {
         if (lgg->atom_buf[i].print != NULL && level <= lgg->conf->verbosity)
-            lgg->atom_buf[i].print(level, fmt, args);
+            lgg->atom_buf[i].print(level, line, file, func, fmt, args);
     }
     va_end(args);
 }

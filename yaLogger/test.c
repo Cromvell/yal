@@ -1,17 +1,20 @@
+#define CONSOLE_TEST(lvl, msg) (console_lgg_print((lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+#define FILE_TEST(lvl, msg) (file_lgg_print((lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+
 void atomic_loggers_test() {
-    console_lgg_print(ERROR_L, "Just a test message. Error! Praise youselves!", NULL);
-    console_lgg_print(WARNING_L, "Second test message. Just warn you", NULL);
-    console_lgg_print(INFO_L, "One more test message. This is info", NULL);
-    console_lgg_print(DEBUG_L, "Yes. Test message. The last one. This time debug", NULL);
+    CONSOLE_TEST(ERROR_L, "Just a test message. Error! Praise youselves!");
+    CONSOLE_TEST(WARNING_L, "Second test message. Just warn you");
+    CONSOLE_TEST(INFO_L, "One more test message. This is info");
+    CONSOLE_TEST(DEBUG_L, "Yes. Test message. The last one. This time debug");
 
     if (file_lgg_init(TEST__MODE ? "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\" : _getcwd(NULL, 0), "testlog")) {
         fatal("Atomic file logger init error");
     }
-    file_lgg_print(ERROR_L, "Just a test message. Error! Praise youselves!", NULL);
-    file_lgg_print(WARNING_L, "Second test message. Just warn you", NULL);
-    file_lgg_print(INFO_L, "One more test message. This is info", NULL);
-    file_lgg_print(DEBUG_L, "Yes. Test message. The last one, I promice. This time debug", NULL);
-    file_lgg_print(DEBUG_L, "Very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long message.", NULL);
+    FILE_TEST(ERROR_L, "Just a test message. Error! Praise youselves!");
+    FILE_TEST(WARNING_L, "Second test message. Just warn you");
+    FILE_TEST(INFO_L, "One more test message. This is info");
+    FILE_TEST(DEBUG_L, "Yes. Test message. The last one, I promice. This time debug");
+    FILE_TEST(DEBUG_L, "Very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long message.");
     file_lgg_close();
 }
 

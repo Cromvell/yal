@@ -35,7 +35,7 @@ extern void add__atomic__lgg(logger *lgg, atom_lgg_type type, log_init init_func
 
 extern logger *logger__init(lgg_conf *params);
 
-extern void print__log(logger *lgg, log_lvl level, const char *fmt, ...);
+extern void print__log(logger *lgg, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, ...);
 
 extern int logger__close(logger *lgg);
 
