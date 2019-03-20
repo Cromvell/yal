@@ -28,6 +28,8 @@ void *xmalloc(size_t num_bytes) {
     return ptr;
 }
 
+#ifdef OS_WINDOWS
+
 BOOL file_exists(TCHAR * file) {
     WIN32_FIND_DATA find_file_data;
     HANDLE handle = FindFirstFile(file, &find_file_data);
@@ -43,6 +45,28 @@ BOOL dir_exists(TCHAR * sz_path) {
     return (dw_attrib != INVALID_FILE_ATTRIBUTES &&
            (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
+
+#endif
+#ifdef OS_LINUX
+
+bool file_exists(const char* filename) {
+	struct stat buffer;
+	int exist = stat(filename, &buffer);
+	return exist == 0 ? true : false;
+}
+
+bool dir_exists(const char* dirname) {
+	DIR *dir = opendir(dirname);
+	if (dir)
+		return true;
+	else if (ENOENT == errno)
+		return false;
+	else
+		fatal("Directory exists check fails");
+}
+
+#endif
+
 
 void *buf__grow(const void *buf, size_t new_len, size_t elem_size) {
     assert(buf_cap(buf) <= (SIZE_MAX - 1) / 2);

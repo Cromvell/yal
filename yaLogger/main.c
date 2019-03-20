@@ -22,7 +22,7 @@ Logger TODO:
 //////////////////////////////////////////////////////////////////
 // External interface
 #define LOG_INIT(...) (logger__init(__VA_ARGS__))
-#define LOG(lgg, lvl, msg, ...) (print__log((lgg), (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), __VA_ARGS__))
+#define LOG(lgg, lvl, msg, ...) (print__log((lgg), (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), ##__VA_ARGS__))
 #define LOG_CLOSE(lgg) (logger__close(lgg))
 #define SET_LOG_LVL(lgg, lvl) (set__log__lvl(lgg, lvl))
 

@@ -1,5 +1,5 @@
-#define CONSOLE_TEST(lvl, msg) (_ftime(&t), console_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
-#define FILE_TEST(lvl, msg) (_ftime(&t), file_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+#define CONSOLE_TEST(lvl, msg) (p_ftime(&t), console_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
+#define FILE_TEST(lvl, msg) (p_ftime(&t), file_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILE__, __FUNCTION__, (msg), NULL))
 
 static struct timeb t;
 
@@ -9,7 +9,7 @@ void atomic_loggers_test() {
     CONSOLE_TEST(INFO_L, "One more test message. This is info");
     CONSOLE_TEST(DEBUG_L, "Yes. Test message. The last one. This time debug");
 
-    if (file_lgg_init(TEST__MODE ? "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\" : _getcwd(NULL, 0), "testlog")) {
+    if (file_lgg_init(TEST__MODE ? "C:\\Users\\Cromvell\\source\\repos\\yaLogger\\bin\\" : p_getcwd(NULL, 0), "testlog")) {
         fatal("Atomic file logger init error");
     }
     FILE_TEST(ERROR_L, "Just a test message. Error! Praise youselves!");

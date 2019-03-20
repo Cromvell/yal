@@ -28,7 +28,7 @@ static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level
     // Cut off filename from path
     char *end = file_path + strlen(file_path);
     char *ps = end;
-    while (*(ps-1) != '\\')
+    while (*(ps-1) != P_PATH_SLASH)
         ps--;
     char *file = (char *)xmalloc((end - ps) * sizeof(char));
     strncpy(file, ps, (end - ps));
@@ -42,7 +42,7 @@ static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level
 
 FILE *file_lgg_output = NULL; // Output file handle
 
-inline void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
     common_lgg_print(stdout, time, level, line, file, func, fmt, argptr);
 }
 
@@ -55,13 +55,13 @@ int file_lgg_init(const char *log_path, const char *log_name) {
         return 1;
     }
 
-    if (log_path[strlen(log_path) - 1] != '\\') {
-        strcat(log_path, "\\");
+    if (log_path[strlen(log_path) - 1] != P_PATH_SLASH) {
+        strcat(log_path, P_PATH_SLASH_STR);
     }
 
     // Set initial log filename
     // TODO: Change files naming by always adding number suffix
-    buf = (char *)xmalloc(MAX_PATH * sizeof(char));
+    buf = (char *)xmalloc(P_MAX_PATH * sizeof(char));
     sprintf(buf, "%s%s.log", log_path, log_name);
 
     while (file_exists(buf)) {
@@ -79,7 +79,7 @@ int file_lgg_init(const char *log_path, const char *log_name) {
     }
 }
 
-inline void file_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+void file_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
     common_lgg_print(file_lgg_output, time, level, line, file, func, fmt, argptr);
 }
 

@@ -35,6 +35,6 @@ void print__log(logger *lgg, log_lvl level, uint16_t line, const char *file, con
 
 int logger__close(logger *lgg);
 
-extern inline int set__log__lvl(logger *lgg, log_lvl level);
+int set__log__lvl(logger *lgg, log_lvl level);
 
 #endif

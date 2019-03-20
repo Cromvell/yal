@@ -25,7 +25,7 @@ logger *logger__init(lgg_conf *params) {
 
         // Default logger settings
         lgg->conf->log_name = "yaLogger"; // TODO: Make name more original
-        lgg->conf->log_path = _getcwd(NULL, 0);
+        lgg->conf->log_path = p_getcwd(NULL, 0);
         lgg->conf->verbosity = DEBUG_L;
     }
     lgg->atom_buf = NULL;
@@ -94,7 +94,7 @@ int logger__close(logger *lgg) {
     }
 }
 
-inline int set__log__lvl(logger *lgg, log_lvl level) {
+int set__log__lvl(logger *lgg, log_lvl level) {
     if (level >= ERROR_L && level <= DEBUG_L)
         lgg->conf->verbosity = level;
     else

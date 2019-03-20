@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys\timeb.h>
 #include <stdarg.h>
 #include <time.h>
 #include <stdbool.h>
@@ -26,8 +25,18 @@ void fatal(const char *fmt, ...);
 void *xrealloc(void *ptr, size_t num_bytes);
 void *xmalloc(size_t num_bytes);
 
+#ifdef OS_WINDOWS
+
 BOOL file_exists(TCHAR * file);
-BOOL dir_exists(TCHAR * sz_path);
+BOOL dir_exists(TCHAR * path);
+
+#endif
+#ifdef OS_LINUX
+
+bool file_exists(const char *file);
+bool dir_exists(const char *path);
+
+#endif
 
 // Stretchy buffer
 

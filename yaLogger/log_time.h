@@ -5,7 +5,7 @@
 
 typedef struct timeb lgg_time;
 
-#define CAPTURE_TIME(lgg) (_ftime(&((lgg)->timestamp)))
+#define CAPTURE_TIME(lgg) (p_ftime(&((lgg)->timestamp)))
 
 char *get_datetime_str(lgg_time *);
 
