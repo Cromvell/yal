@@ -18,23 +18,25 @@ char *log_level_to_str(log_lvl level) {
 
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions
-static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file_path, const char *func, const char *fmt, va_list argptr) {
+static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
     char msg_buf[MAX_LOG_LINE_LEN];
     static const char *warn = "... !!! WARNING !!! Message was truncated!";
+    int required_len;
+	char *timeline;
+	char *loglvl;
 
     // Assemble user formated string
-    int required_len = vsnprintf(msg_buf, MAX_LOG_LINE_LEN, fmt, argptr);
+    if (argptr != NULL) {
+    	va_list args_copy;
+    	va_copy(args_copy, argptr); // Copy just in case if pointed-to structure will be changed
+    	required_len = vsnprintf(msg_buf, MAX_LOG_LINE_LEN, fmt, args_copy);
+    	va_end(args_copy);
+    }
+    else
+    	required_len = snprintf(msg_buf, MAX_LOG_LINE_LEN, fmt);
 
-    // Cut off filename from path
-    char *end = file_path + strlen(file_path);
-    char *ps = end;
-    while (*(ps-1) != P_PATH_SLASH)
-        ps--;
-    char *file = (char *)xmalloc((end - ps) * sizeof(char));
-    strncpy(file, ps, (end - ps));
-
-    char *timeline = get_datetime_str(time);
-    char *loglvl = log_level_to_str(level);
+    timeline = get_datetime_str(time);
+    loglvl = log_level_to_str(level);
     // And then print it in logger wrapped format
     // TODO: Make file, line and func optional
     fprintf(ostream, "%s [%-5s] {%s:%d} {%s()} %s%s\n", timeline, loglvl, file, line, func, msg_buf, required_len >= MAX_LOG_LINE_LEN ? warn : "");
