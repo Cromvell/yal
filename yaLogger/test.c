@@ -31,7 +31,7 @@ void atomic_loggers_test() {
 }
 
 void logger_test() {
-    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L });
+    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
     LOG(lgg, ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
@@ -42,7 +42,22 @@ void logger_test() {
     LOG_CLOSE(lgg);
 }
 
+#define TEST_FUNC(func, ...) (printf("%s(%s):\n\t= %d\n\n", #func, (#__VA_ARGS__), func(__VA_ARGS__)))
+
+void test_extract_log_num() {
+    TEST_FUNC(extract_log_num, "logname.0.log");
+    TEST_FUNC(extract_log_num, "logname.1.log");
+    TEST_FUNC(extract_log_num, "logname.42.log");
+    TEST_FUNC(extract_log_num, "logname..log");
+    TEST_FUNC(extract_log_num, "logname.1234567890.log");
+    TEST_FUNC(extract_log_num, "logname.-235log");
+    TEST_FUNC(extract_log_num, "logname.+11log");
+    TEST_FUNC(extract_log_num, "logname.log");
+    TEST_FUNC(extract_log_num, "logname.-1.log");
+}
+
 void test_main(void) {
+    test_extract_log_num();
     atomic_loggers_test();
     logger_test();
 }

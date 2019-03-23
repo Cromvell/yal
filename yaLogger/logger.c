@@ -27,6 +27,7 @@ logger *logger__init(lgg_conf *params) {
         lgg->conf->log_name = "yaLogger"; // TODO: Make name more original
         lgg->conf->log_path = p_getcwd(NULL, 0);
         lgg->conf->verbosity = DEBUG_L;
+        lgg->conf->max_files = 0;
     }
     lgg->atom_buf = NULL;
     lgg->module_buf = NULL;
@@ -42,7 +43,7 @@ logger *logger__init(lgg_conf *params) {
         if (lgg->atom_buf[i].init != NULL &&
             lgg->atom_buf[i].type == FILE_LGG)
         {
-            if (lgg->atom_buf[i].init(lgg->conf->log_path, lgg->conf->log_name)) {
+            if (lgg->atom_buf[i].init(lgg->conf->log_path, lgg->conf->log_name, lgg->conf->max_files)) {
                 buf_free(lgg->atom_buf);
                 buf_free(lgg->module_buf);
                 free(lgg);

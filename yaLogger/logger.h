@@ -10,6 +10,7 @@ typedef struct {
     char *log_path;
     char *log_name;
     log_lvl verbosity;
+    int max_files;
 } lgg_conf;
 
 typedef struct {
@@ -37,4 +38,4 @@ int logger__close(logger *lgg);
 
 int set__log__lvl(logger *lgg, log_lvl level);
 
-#endif
+#endif // LOGGER_H
