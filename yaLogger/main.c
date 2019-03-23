@@ -9,11 +9,11 @@ Logger TODO:
   + Separate src into different files
   + Print file, line and function in log
   + Increase timestamp pricesion. Capture it immediately on log call and then store
+  + Enable port to linux (and Mac OS in future(but who cares?))
+  + Option "Max file count"
 
-  - Enable port to linux (and Mac OS in future(but who cares?))
   - Add custom level creation and categories
   - Enable config files
-  - Option "Max file count"
 
 */
 

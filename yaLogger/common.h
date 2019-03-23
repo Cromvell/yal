@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
@@ -30,6 +31,8 @@ void *xmalloc(size_t num_bytes);
 BOOL file_exists(TCHAR * file);
 BOOL dir_exists(TCHAR * path);
 
+int ffdcmp(const WIN32_FIND_DATA *ffd1, const WIN32_FIND_DATA *ffd2);
+
 #endif
 #ifdef OS_LINUX
 
@@ -37,6 +40,11 @@ bool file_exists(const char *file);
 bool dir_exists(const char *path);
 
 #endif
+
+bool starts_with(const char *pre, const char *str);
+bool ends_with(const char *str, const char *ext);
+
+int extract_log_num(const char *filename);
 
 // Stretchy buffer
 
@@ -60,4 +68,4 @@ typedef struct BufHdr {
 
 void *buf__grow(const void *buf, size_t new_len, size_t elem_size);
 
-#endif
+#endif // COMMON_H

@@ -18,6 +18,7 @@ char *get_datetime_str(lgg_time *time) {
     timeline = (char *)xmalloc(strlen(tmp) * sizeof(char));
 
     // Assemble final string and cut off unused parts
+    // TODO: Make time format more compact and numeric
     sprintf(timeline, "%s %.*s.%03d", year, 18 - 3, tmp + 4, time->millitm);
 
     return timeline;

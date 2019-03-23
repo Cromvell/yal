@@ -26,7 +26,6 @@
 // Linux specific headers
 #include <unistd.h>
 #include <dirent.h>
-#include <errno.h>
 #include <sys/timeb.h>
 #include <sys/stat.h>
 #include <linux/limits.h>

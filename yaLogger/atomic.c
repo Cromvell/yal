@@ -18,7 +18,7 @@ char *log_level_to_str(log_lvl level) {
 
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions
-static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
+inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {
     char msg_buf[MAX_LOG_LINE_LEN];
     static const char *warn = "... !!! WARNING !!! Message was truncated!";
     int required_len;
@@ -48,29 +48,148 @@ void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char 
     common_lgg_print(stdout, time, level, line, file, func, fmt, argptr);
 }
 
-int file_lgg_init(const char *log_path, const char *log_name) {
+int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
     int log_n = 0;
-    char *buf;
+    int max_n = 0;
+    int count = 0;
+    char buf[P_MAX_PATH];
+    char log_dir[P_MAX_PATH];
 
     // Check if path exists
     if (!dir_exists(log_path)) {
         return 1;
     }
 
-    if (log_path[strlen(log_path) - 1] != P_PATH_SLASH) {
-        strcat(log_path, P_PATH_SLASH_STR);
+    // Prepare path string for use. First copy string to buffer, next append slash to the end
+    *log_dir = '\0';
+    strncat(log_dir, log_path, P_MAX_PATH);
+    if (log_dir[strlen(log_path) - 1] != P_PATH_SLASH) {
+        strcat(log_dir, P_PATH_SLASH_STR);
     }
 
-    // Set initial log filename
-    // TODO: Change files naming by always adding number suffix
-    buf = (char *)xmalloc(P_MAX_PATH * sizeof(char));
-    sprintf(buf, "%s%s.log", log_path, log_name);
+    // Search all log files in directory and count how many they
+#ifdef OS_WINDOWS
 
-    while (file_exists(buf)) {
-        // Change filename if previous already exists
-        sprintf(buf, "%s%s.%d.log", log_path, log_name, log_n);
-        log_n++;
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATA *namelist = NULL;
+    WIN32_FIND_DATA ffd;
+    int n;
+    int n_fst = 0;
+
+    // Prepare path to use with FindFile functions.
+    // Append * (joker) to the directory name
+    strncpy(buf, log_dir, P_MAX_PATH);
+    strncat(buf, "*", P_MAX_PATH);
+
+    // Start extract info about directory
+    hFind = FindFirstFile(buf, &ffd);
+    if (INVALID_HANDLE_VALUE == hFind) {
+        return 1;
     }
+
+    do {
+        // If we found file and it starts from log_name, have extension .log, then we count it
+        if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            if (starts_with(log_name, ffd.cFileName) && ends_with(ffd.cFileName, ".log")) {
+                buf_push(namelist, ffd);
+                count++;
+            }
+        }
+    } while (FindNextFile(hFind, &ffd) != 0);
+
+    FindClose(hFind);
+
+    // Sort files info by names in alphabetical order (this is required for FAT filesystem)
+    qsort(namelist, buf_len(namelist), sizeof(WIN32_FIND_DATA), (int(*) (const void *, const void *)) ffdcmp);
+
+
+#endif
+#ifdef OS_LINUX
+    // IMPLEMENTATION STATUS: !!! Pending Debug !!!
+
+    struct dirent **namelist;
+    int n_fst = -1;
+    int n;
+
+    n = scandir(log_dir, &namelist, 0, alphasort);
+    if (!n) {
+        return 1;
+    }
+    else {
+        // Search for files which names starts from log_name and have .log extension and count them
+        while (n--) {
+            if (starts_with(log_name, namelist[n]->d_name) && ends_with(ffd.cFileName, ".log")) {
+                if (n_fst == -1)
+                    n_fst = n;
+                    count++;
+            }
+        }
+    }
+
+    // TODO: Most likely we'll need to sort in this implementation too, because alphasort isn't natural sorting algorithm
+
+#endif
+
+    // Select from what name start look for free one
+    if (count == 0)
+        sprintf(buf, "%s%s.0.log", log_dir, log_name);
+    else {
+        // Extract last logfile (namelist[n_fst + count - 1]) number
+#ifdef OS_WINDOWS
+        n = extract_log_num(namelist[n_fst + count - 1].cFileName);
+#endif
+#ifdef OS_LINUX
+        n = extract_log_num(namelist[n_fst + count - 1]->d_name);
+#endif
+        // Remove all files that have wrong names formats
+        while (n < 0) {
+            strncpy(buf, log_dir, P_MAX_PATH);
+#ifdef OS_WINDOWS
+            strncat(buf, namelist[n_fst + count - 1].cFileName, P_MAX_PATH);
+#endif
+#ifdef OS_LINUX
+            strncat(path_buf, namelist[n_fst + count - 1]->d_name, P_MAX_PATH);
+#endif
+            remove(buf);
+            --count;
+            if (count == 0) {
+                // If there's no logfiles left stop deleting files
+                break;
+            }
+#ifdef OS_WINDOWS
+            n = extract_log_num(namelist[n_fst + count - 1].cFileName);
+#endif
+#ifdef OS_LINUX
+            n = extract_log_num(namelist[n_fst + count - 1]->d_name);
+#endif
+        }
+
+        // Delete extra files
+        if (max_files > 0) {
+            // We delete files until count = max_files-1, take into account that we have one more file to create
+            // and for that new state condition count <= max_files also must be true
+            while (count >= max_files) {
+                strncpy(buf, log_dir, P_MAX_PATH);
+#ifdef OS_WINDOWS
+                strncat(buf, namelist[n_fst++].cFileName, P_MAX_PATH);
+#endif
+#ifdef OS_LINUX
+                strncat(path_buf, namelist[n_fst++]->d_name, P_MAX_PATH);
+#endif
+                remove(buf);
+                --count;
+            }
+        }
+
+        if (count > 0) {
+            // When we found correct last logfile number, assign next to it to the new file 
+            sprintf(buf, "%s%s.%d.log", log_dir, log_name, n + 1);
+        } else {
+            // If there's no logfiles left, just start with 0 logfile number
+            sprintf(buf, "%s%s.0.log", log_dir, log_name);
+        }
+    }
+
 
     file_lgg_output = fopen(buf, "w");
     if (file_lgg_output == NULL) {
