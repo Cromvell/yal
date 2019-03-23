@@ -19,7 +19,7 @@ void atomic_loggers_test() {
     CONSOLE_TEST(INFO_L, "One more test message. This is info");
     CONSOLE_TEST(DEBUG_L, "Yes. Test message. The last one. This time debug");
 
-    if (file_lgg_init(TEST__MODE ? log_path : p_getcwd(NULL, 0), "testlog")) {
+    if (file_lgg_init(TEST__MODE ? log_path : p_getcwd(NULL, 0), "testlog", 0)) {
         fatal("Atomic file logger init error");
     }
     FILE_TEST(ERROR_L, "Just a test message. Error! Praise yourselves!");
@@ -31,7 +31,8 @@ void atomic_loggers_test() {
 }
 
 void logger_test() {
-    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
+    //logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
+    logger *lgg = LOG_INIT(NULL);
     LOG(lgg, ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
@@ -58,6 +59,6 @@ void test_extract_log_num() {
 
 void test_main(void) {
     test_extract_log_num();
-    atomic_loggers_test();
+    //atomic_loggers_test();
     logger_test();
 }

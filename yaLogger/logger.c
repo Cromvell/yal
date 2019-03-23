@@ -24,10 +24,10 @@ logger *logger__init(lgg_conf *params) {
         }
 
         // Default logger settings
-        lgg->conf->log_name = "yaLogger"; // TODO: Make name more original
+        lgg->conf->log_name = "testlog"; // TODO: Make name more original
         lgg->conf->log_path = p_getcwd(NULL, 0);
         lgg->conf->verbosity = DEBUG_L;
-        lgg->conf->max_files = 0;
+        lgg->conf->max_files = 4;
     }
     lgg->atom_buf = NULL;
     lgg->module_buf = NULL;
@@ -76,10 +76,11 @@ void print__log(logger *lgg, log_lvl level, uint16_t line, const char *file, con
 }
 
 int logger__close(logger *lgg) {
+	int exitcode = 0;
+
     if (lgg != NULL) {
         if (lgg->atom_buf != NULL) {
             int i;
-            int result = 0;
 
             for (i = 0; i < buf_len(lgg->atom_buf); i++) {
                 if (lgg->atom_buf[i].close != NULL)
@@ -93,9 +94,11 @@ int logger__close(logger *lgg) {
 
         lgg = NULL;
     }
+
+    return exitcode;
 }
 
-int set__log__lvl(logger *lgg, log_lvl level) {
+void set__log__lvl(logger *lgg, log_lvl level) {
     if (level >= ERROR_L && level <= DEBUG_L)
         lgg->conf->verbosity = level;
     else

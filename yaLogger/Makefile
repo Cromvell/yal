@@ -11,4 +11,4 @@ $(EXEC): $(OBJS)
 	gcc -c $< -o $@
 
 clean:
-	rm -rf *.o $(EXEC)
+	rm -rf *.o *.log $(EXEC)

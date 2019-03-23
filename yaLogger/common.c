@@ -46,6 +46,7 @@ BOOL dir_exists(TCHAR * sz_path) {
            (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
+// TODO: Use void * pointer in parameters
 int ffdcmp(const WIN32_FIND_DATA *ffd1, const WIN32_FIND_DATA *ffd2) {
     int n1 = extract_log_num(ffd1->cFileName);
     int n2 = extract_log_num(ffd2->cFileName);
@@ -75,6 +76,20 @@ bool dir_exists(const char* dirname) {
 		return false;
 	else
 		fatal("Directory exists check fails");
+}
+
+int filecmp(const void *f1, const void *f2) {
+	const struct dirent *f1_ = *(const struct dirent **)f1;
+	const struct dirent *f2_ = *(const struct dirent **)f2;
+	int n1 = extract_log_num(f1_->d_name);
+	int n2 = extract_log_num(f2_->d_name);
+
+	if (n1 == n2)
+		return 0;
+	else if (n1 < n2)
+		return -1;
+	else
+		return 1;
 }
 
 #endif

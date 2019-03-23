@@ -45,7 +45,7 @@ static inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level
 extern void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
 
 extern FILE *file_lgg_output;
-extern int file_lgg_init(const char *log_path, const char *log_name);
+extern int file_lgg_init(const char *log_path, const char *log_name, int max_files);
 extern void file_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr);
 extern int file_lgg_close();
 

@@ -39,6 +39,8 @@ int ffdcmp(const WIN32_FIND_DATA *ffd1, const WIN32_FIND_DATA *ffd2);
 bool file_exists(const char *file);
 bool dir_exists(const char *path);
 
+int filecmp(const void *f1, const void *f2);
+
 #endif
 
 bool starts_with(const char *pre, const char *str);
