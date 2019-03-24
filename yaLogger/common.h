@@ -46,7 +46,7 @@ int lognamecmp(const void *f1, const void *f2);
 bool starts_with(const char *pre, const char *str);
 bool ends_with(const char *str, const char *ext);
 
-int extract_log_num(const char *filename);
+uint64_t extract_log_num(const char *filename);
 
 // Stretchy buffer
 

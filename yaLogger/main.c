@@ -12,7 +12,7 @@ Logger TODO:
   + Enable port to linux (and Mac OS in future(but who cares?))
   + Option "Max file count"
 
-  - Add custom level creation and categories
+  - Add categories
   - Enable config files
 
 */
@@ -24,7 +24,7 @@ Logger TODO:
 //////////////////////////////////////////////////////////////////
 // External interface
 #define LOG_INIT(...) (logger__init(__VA_ARGS__))
-#define LOG(lgg, lvl, msg, ...) (print__log((lgg), (lvl), (uint16_t)__LINE__, (strrchr(__FILE__, P_PATH_SLASH) ? strrchr(__FILE__, P_PATH_SLASH) + 1 : __FILE__), __FUNCTION__, (msg), ## __VA_ARGS__))
+#define LOG(lgg, lvl, msg, ...) (print__log((lgg), (lvl), (uint16_t)__LINE__, __FILENAME__, __FUNCTION__, (msg), ## __VA_ARGS__))
 #define LOG_CLOSE(lgg) (logger__close(lgg))
 #define SET_LOG_LVL(lgg, lvl) (set__log__lvl(lgg, lvl))
 

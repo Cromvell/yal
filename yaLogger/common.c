@@ -49,8 +49,8 @@ BOOL dir_exists(TCHAR * sz_path) {
 int ffdcmp(const void *ffd1, const void *ffd2) {
     WIN32_FIND_DATA *ff1_ = (WIN32_FIND_DATA *)ffd1;
     WIN32_FIND_DATA *ff2_ = (WIN32_FIND_DATA *)ffd2;
-    int n1 = extract_log_num(ff1_->cFileName);
-    int n2 = extract_log_num(ff2_->cFileName);
+    uint64_t n1 = extract_log_num(ff1_->cFileName);
+    uint64_t n2 = extract_log_num(ff2_->cFileName);
 
     if (n1 == n2)
         return 0;
@@ -82,8 +82,8 @@ bool dir_exists(const char* dirname) {
 int lognamecmp(const void *f1, const void *f2) {
 	const char *f1_ = *(const char **)f1;
 	const char *f2_ = *(const char **)f2;
-	int n1 = extract_log_num(f1_);
-	int n2 = extract_log_num(f2_);
+    uint64_t n1 = extract_log_num(f1_);
+    uint64_t n2 = extract_log_num(f2_);
 
 	if (n1 == n2)
 		return 0;
@@ -110,7 +110,7 @@ bool ends_with(const char *str, const char *end) {
     return false;
 }
 
-int extract_log_num(const char *filename) {
+uint64_t extract_log_num(const char *filename) {
     char *start;
     char *end = filename + strlen(filename) - 1;
     char *ptr;
@@ -130,7 +130,7 @@ int extract_log_num(const char *filename) {
         // Error: there's nothing between dots
         return -1;
     } else {
-        result_num = strtol(start, &end, 10);
+        result_num = (uint64_t)strtoul(start, &end, 10);
         if (end == start) {
             // Error: can't convert string to number
             return -1;

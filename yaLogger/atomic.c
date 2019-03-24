@@ -33,9 +33,9 @@ void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char 
 }
 
 int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
-    int log_num;
-    int count = 0;
-    int n_fst = 0;
+    uint64_t log_num;
+    uint64_t count = 0;
+    uint64_t n_fst = 0;
     char buf[P_MAX_PATH];
     char log_dir[P_MAX_PATH];
 
@@ -167,7 +167,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
 
         if (count > 0) {
             // When we found correct last logfile number, assign next to it to the new file 
-            sprintf(buf, "%s%s.%d.log", log_dir, log_name, log_num + 1);
+            sprintf(buf, "%s%s.%lu.log", log_dir, log_name, log_num + 1);
         } else {
             // If there's no logfiles left, just start with 0 logfile number
             sprintf(buf, "%s%s.0.log", log_dir, log_name);
