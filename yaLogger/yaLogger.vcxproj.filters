@@ -33,6 +33,9 @@
     <ClCompile Include="log_time.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="log_levels.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -48,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="log_time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="log_levels.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

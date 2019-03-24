@@ -99,9 +99,9 @@ int logger__close(logger *lgg) {
 }
 
 void set__log__lvl(logger *lgg, log_lvl level) {
-    if (level >= ERROR_L && level <= DEBUG_L)
+    // Not allow user set UNKNOWN log level directly
+    if (level >= FATAL_L && level <= NOTSET_L)
         lgg->conf->verbosity = level;
     else
-        // TODO: Assign UNKNOWN_L when it will be added
-        fatal("Unknown log level identifier: %d", level);
+        lgg->conf->verbosity = UNKNOWN_L;
 }

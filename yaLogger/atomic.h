@@ -3,18 +3,9 @@
 
 #include "common.h"
 #include "log_time.h"
-
-#define TEST__MODE 1
+#include "log_levels.h"
 
 #define MAX_LOG_LINE_LEN 1024
-
-// TODO: Maybe take out this enum to another .h
-typedef enum {
-    ERROR_L,
-    WARNING_L,
-    INFO_L,
-    DEBUG_L
-} log_lvl;
 
 typedef int(*log_init)();
 typedef int(*log_close)(void);
@@ -31,11 +22,6 @@ typedef struct atomic_lgg {
     log_print print;
     log_close close;
 } atom_lgg;
-
-//////////////////////////////////////////////////////////////////
-// Message preprocessing
-
-char *log_level_to_str(log_lvl level);
 
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions

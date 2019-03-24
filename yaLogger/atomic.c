@@ -1,21 +1,5 @@
 #include "atomic.h"
 
-char *log_level_to_str(log_lvl level) {
-    switch (level) {
-    case ERROR_L:
-        return "ERROR";
-    case WARNING_L:
-        return "WARN";
-    case INFO_L:
-        return "INFO";
-    case DEBUG_L:
-        return "DEBUG";
-    default:
-        fatal("Unknown log level identifier: %d", level);
-        break;
-    }
-}
-
 //////////////////////////////////////////////////////////////////
 // Atomic loggers functions
 inline void common_lgg_print(FILE *ostream, lgg_time *time, log_lvl level, uint16_t line, const char *file, const char *func, const char *fmt, va_list argptr) {

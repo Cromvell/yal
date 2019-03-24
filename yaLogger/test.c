@@ -1,6 +1,8 @@
 #define CONSOLE_TEST(lvl, msg) (p_ftime(&t), console_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILENAME__, __FUNCTION__, (msg), NULL))
 #define FILE_TEST(lvl, msg) (p_ftime(&t), file_lgg_print(&t, (lvl), (uint16_t)__LINE__, __FILENAME__, __FUNCTION__, (msg), NULL))
 
+#define TEST__MODE 1
+
 static struct timeb t;
 
 // Logger parameters
@@ -15,7 +17,7 @@ const char *log_name = "testlog";
 
 void atomic_loggers_test() {
     CONSOLE_TEST(ERROR_L, "Just a test message. Error! Praise yourselves!");
-    CONSOLE_TEST(WARNING_L, "Second test message. Just warn you");
+    CONSOLE_TEST(WARN_L, "Second test message. Just warn you");
     CONSOLE_TEST(INFO_L, "One more test message. This is info");
     CONSOLE_TEST(DEBUG_L, "Yes. Test message. The last one. This time debug");
 
@@ -23,7 +25,7 @@ void atomic_loggers_test() {
         fatal("Atomic file logger init error");
     }
     FILE_TEST(ERROR_L, "Just a test message. Error! Praise yourselves!");
-    FILE_TEST(WARNING_L, "Second test message. Just warn you");
+    FILE_TEST(WARN_L, "Second test message. Just warn you");
     FILE_TEST(INFO_L, "One more test message. This is info");
     FILE_TEST(DEBUG_L, "Yes. Test message. The last one, I promise. This time debug");
     FILE_TEST(DEBUG_L, "Very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long message.");
@@ -31,13 +33,20 @@ void atomic_loggers_test() {
 }
 
 void logger_test() {
-    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
+    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, UNKNOWN_L, 4 });
     //logger *lgg = LOG_INIT(NULL);
+    LOG(lgg, FATAL_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, ALERT_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, CRIT_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
-    LOG(lgg, WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, WARN_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, NOTICE_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, DEBUG_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
-    SET_LOG_LVL(lgg, WARNING_L);
+    // Next two messages don't show by default, but that's not our case
+    LOG(lgg, NOTSET_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    LOG(lgg, UNKNOWN_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
+    SET_LOG_LVL(lgg, WARN_L);
     LOG(lgg, INFO_L, "Just an info message that will never be logged.");
 
     LOG_CLOSE(lgg);
