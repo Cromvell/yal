@@ -27,7 +27,7 @@ logger *logger__init(lgg_conf *params) {
         lgg->conf->log_name = "testlog"; // TODO: Make name more original
         lgg->conf->log_path = p_getcwd(NULL, 0);
         lgg->conf->verbosity = DEBUG_L;
-        lgg->conf->max_files = 4;
+        lgg->conf->max_files = 0;
     }
     lgg->atom_buf = NULL;
     lgg->module_buf = NULL;

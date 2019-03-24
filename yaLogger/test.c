@@ -31,8 +31,8 @@ void atomic_loggers_test() {
 }
 
 void logger_test() {
-    //logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
-    logger *lgg = LOG_INIT(NULL);
+    logger *lgg = LOG_INIT(&(lgg_conf) { log_path, log_name, DEBUG_L, 4 });
+    //logger *lgg = LOG_INIT(NULL);
     LOG(lgg, ERROR_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, WARNING_L, "Message: %s, %d, %f", "string", 42, 2.718281828);
     LOG(lgg, INFO_L, "Message: %s, %d, %f", "string", 42, 2.718281828);

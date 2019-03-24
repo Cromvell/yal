@@ -100,7 +100,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
     FindClose(hFind);
 
     // Sort files info by names in alphabetical order (this is required for FAT filesystem)
-    qsort(namelist, buf_len(namelist), sizeof(WIN32_FIND_DATA), (int(*) (const void *, const void *)) ffdcmp);
+    qsort(namelist, buf_len(namelist), sizeof(WIN32_FIND_DATA), ffdcmp);
 
 
 #endif

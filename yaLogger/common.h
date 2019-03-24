@@ -31,7 +31,7 @@ void *xmalloc(size_t num_bytes);
 BOOL file_exists(TCHAR * file);
 BOOL dir_exists(TCHAR * path);
 
-int ffdcmp(const WIN32_FIND_DATA *ffd1, const WIN32_FIND_DATA *ffd2);
+int ffdcmp(const void *ffd1, const void *ffd2);
 
 #endif
 #ifdef OS_LINUX

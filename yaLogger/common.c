@@ -46,10 +46,11 @@ BOOL dir_exists(TCHAR * sz_path) {
            (dw_attrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-// TODO: Use void * pointer in parameters
-int ffdcmp(const WIN32_FIND_DATA *ffd1, const WIN32_FIND_DATA *ffd2) {
-    int n1 = extract_log_num(ffd1->cFileName);
-    int n2 = extract_log_num(ffd2->cFileName);
+int ffdcmp(const void *ffd1, const void *ffd2) {
+    WIN32_FIND_DATA *ff1_ = (WIN32_FIND_DATA *)ffd1;
+    WIN32_FIND_DATA *ff2_ = (WIN32_FIND_DATA *)ffd2;
+    int n1 = extract_log_num(ff1_->cFileName);
+    int n2 = extract_log_num(ff2_->cFileName);
 
     if (n1 == n2)
         return 0;
