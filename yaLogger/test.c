@@ -58,7 +58,7 @@ void test_extract_log_num() {
 }
 
 void test_main(void) {
-    test_extract_log_num();
+    //test_extract_log_num();
     //atomic_loggers_test();
     logger_test();
 }

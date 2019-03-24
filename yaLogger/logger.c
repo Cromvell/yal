@@ -24,7 +24,7 @@ logger *logger__init(lgg_conf *params) {
         }
 
         // Default logger settings
-        lgg->conf->log_name = "testlog"; // TODO: Make name more original
+        lgg->conf->log_name = "yaLogger";
         lgg->conf->log_path = p_getcwd(NULL, 0);
         lgg->conf->verbosity = DEBUG_L;
         lgg->conf->max_files = 0;

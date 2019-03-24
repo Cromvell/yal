@@ -79,11 +79,11 @@ bool dir_exists(const char* dirname) {
 		fatal("Directory exists check fails");
 }
 
-int filecmp(const void *f1, const void *f2) {
-	const struct dirent *f1_ = *(const struct dirent **)f1;
-	const struct dirent *f2_ = *(const struct dirent **)f2;
-	int n1 = extract_log_num(f1_->d_name);
-	int n2 = extract_log_num(f2_->d_name);
+int lognamecmp(const void *f1, const void *f2) {
+	const char *f1_ = *(const char **)f1;
+	const char *f2_ = *(const char **)f2;
+	int n1 = extract_log_num(f1_);
+	int n2 = extract_log_num(f2_);
 
 	if (n1 == n2)
 		return 0;

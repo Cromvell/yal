@@ -39,7 +39,7 @@ int ffdcmp(const void *ffd1, const void *ffd2);
 bool file_exists(const char *file);
 bool dir_exists(const char *path);
 
-int filecmp(const void *f1, const void *f2);
+int lognamecmp(const void *f1, const void *f2);
 
 #endif
 

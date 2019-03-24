@@ -51,6 +51,7 @@ void console_lgg_print(lgg_time *time, log_lvl level, uint16_t line, const char 
 int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
     int log_num;
     int count = 0;
+    int n_fst = 0;
     char buf[P_MAX_PATH];
     char log_dir[P_MAX_PATH];
 
@@ -74,7 +75,6 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
     HANDLE hFind = INVALID_HANDLE_VALUE;
     WIN32_FIND_DATA *namelist = NULL;
     WIN32_FIND_DATA ffd;
-    int n_fst = 0;
 
     // Prepare path to use with FindFile functions.
     // Append * (joker) to the directory name
@@ -105,33 +105,26 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
 
 #endif
 #ifdef OS_LINUX
-    // IMPLEMENTATION STATUS: There's known bug which when in same directory exists files with numbers between dots
-    // 						  this files after sorting interleave with logfiles, so because of that order algorithm fails.
-    //						  I'll fix this bug in later versions.
 
-    struct dirent **namelist;
-    int n_fst = -1;
+    struct dirent **dirent;
+    char **namelist = NULL;
     int file_num;
-    int files_count;
 
-    files_count = scandir(log_dir, &namelist, 0, alphasort);
-    if (!files_count) {
+    file_num = scandir(log_dir, &dirent, 0, alphasort);
+    if (!file_num) {
         return 1;
     }
     else {
-        // We'll need to sort in this implementation too, because alphasort isn't natural sorting algorithm and we have numbers in names
-        qsort(namelist, files_count, sizeof(struct dirent *), filecmp);
-
         // Search for files which names starts from log_name and have .log extension and count them
-    	file_num = files_count;
         while (file_num--) {
-            if (starts_with(log_name, namelist[file_num]->d_name) && ends_with(namelist[file_num]->d_name, ".log")) {
+            if (starts_with(log_name, dirent[file_num]->d_name) && ends_with(dirent[file_num]->d_name, ".log")) {
+            	buf_push(namelist, dirent[file_num]->d_name);
             	count++;
-            	// Because we traverse files in reverse order, just keep assigning file_num value
-            	// to n_fst and eventually the last assign give us first logfile number (!)in directory.
-                n_fst = file_num;
             }
         }
+
+        // We'll need to sort in this implementation too, because alphasort isn't natural sorting algorithm and we have numbers in names
+        qsort(namelist, buf_len(namelist), sizeof(char *), lognamecmp);
     }
 
 
@@ -146,7 +139,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
         log_num = extract_log_num(namelist[n_fst + count - 1].cFileName);
 #endif
 #ifdef OS_LINUX
-        log_num = extract_log_num(namelist[n_fst + count - 1]->d_name);
+        log_num = extract_log_num(namelist[n_fst + count - 1]);
 #endif
         // Remove all files that have wrong names formats
         while (log_num < 0) {
@@ -155,7 +148,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
             strncat(buf, namelist[n_fst + count - 1].cFileName, P_MAX_PATH);
 #endif
 #ifdef OS_LINUX
-            strncat(buf, namelist[n_fst + count - 1]->d_name, P_MAX_PATH);
+            strncat(buf, namelist[n_fst + count - 1], P_MAX_PATH);
 #endif
             remove(buf);
             --count;
@@ -167,7 +160,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
             log_num = extract_log_num(namelist[n_fst + count - 1].cFileName);
 #endif
 #ifdef OS_LINUX
-            log_num = extract_log_num(namelist[n_fst + count - 1]->d_name);
+            log_num = extract_log_num(namelist[n_fst + count - 1]);
 #endif
         }
 
@@ -181,7 +174,7 @@ int file_lgg_init(const char *log_path, const char *log_name, int max_files) {
                 strncat(buf, namelist[n_fst++].cFileName, P_MAX_PATH);
 #endif
 #ifdef OS_LINUX
-                strncat(buf, namelist[n_fst++]->d_name, P_MAX_PATH);
+                strncat(buf, namelist[n_fst++], P_MAX_PATH);
 #endif
                 remove(buf);
                 --count;
